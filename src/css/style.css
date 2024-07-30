@@ -1,0 +1,58 @@
+#registerBtn {
+    display: block;
+    margin-top: 20px;
+    width: 200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#registerForm {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30%;
+    min-width: 300px;
+    height: auto;
+    background: #fff;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    z-index: 1050;
+    text-align: center;
+}
+
+#registerForm button.close {
+    float: right;
+    font-size: 20px;
+    line-height: 20px;
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+#registerForm input,
+#registerForm button.submit {
+    width: 80%;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+#registerForm button.submit {
+    width: 35%;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+}

@@ -1,3 +1,47 @@
+const express = require('express');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+app.use(express.static('public')); // Serve your CSS, JS, and images from the public directory
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './src/images') // Ensure this directory exists
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Avoid conflicts with original names
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Endpoint to handle pet image uploads and JSON data updates
+app.post('/registerPet', upload.single('petImage'), (req, res) => {
+  const petData = { image: `/images/${req.file.filename}`, ...req.body };
+  const petsFile = path.join(__dirname, './src/pets.json');
+
+  fs.readFile(petsFile, (err, data) => {
+    if (err) {
+      console.error("Error reading pets file:", err);
+      return res.status(500).send("Error reading pet data.");
+    }
+
+    let pets = JSON.parse(data);
+    pets.push(petData);
+
+    fs.writeFile(petsFile, JSON.stringify(pets, null, 2), (err) => {
+      if (err) {
+        console.error("Error writing pet data:", err);
+        return res.status(500).send("Error updating pet data.");
+      }
+      res.send('Pet registered successfully!');
+    });
+  });
+});
+
+
 App = {
   web3Provider: null,
   contracts: {},
@@ -66,3 +110,6 @@ $(function () {
     App.init();
   });
 });
+
+// Start the server
+app.listen(3000, () => console.log('Server running on port 3000'));

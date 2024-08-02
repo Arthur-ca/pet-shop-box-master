@@ -1,10 +1,12 @@
 App = {
   web3Provider: null,
   contracts: {},
+  pets: [],//store pet data for filtering
 
   init: async function () {
     // Load pets.
     $.getJSON('../pets.json', function (data) {
+      App.pets = data;//Store data for filtering
       var petsRow = $('#petsRow');
       var petTemplate = $('#petTemplate');
 
@@ -18,6 +20,8 @@ App = {
 
         petsRow.append(petTemplate.html());
       }
+      //initialize filtering after loading pets
+      Filter.init();
     });
 
     return await App.initWeb3();
@@ -27,7 +31,6 @@ App = {
     /*
      * Replace me...
      */
-
     return App.initContract();
   },
 
@@ -57,6 +60,23 @@ App = {
     /*
      * Replace me...
      */
+  },
+
+  displayPets: function (pets) {
+    const petsRow = $('#petsRow');
+    petsRow.empty();
+
+    pets.forEach(function (pet) {
+      const petTemplate = $('#petTemplate').clone(); // Clone the template
+      petTemplate.find('.panel-title').text(pet.name);
+      petTemplate.find('img').attr('src', pet.picture);
+      petTemplate.find('.pet-breed').text(pet.breed);
+      petTemplate.find('.pet-age').text(pet.age);
+      petTemplate.find('.pet-location').text(pet.location);
+      petTemplate.find('.btn-adopt').attr('data-id', pet.id);
+
+      petsRow.append(petTemplate.html());
+    });
   }
 
 };

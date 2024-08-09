@@ -1,26 +1,33 @@
-document.getElementById('registerBtn').addEventListener('click', function () {
-  fetch('pets.json')
-    .then(response => response.json())
-    .then(data => {
-      // Assuming pets.json contains an array of pets
-      const petOptions = data.map(pet => `<option value="${pet.id}">${pet.name}</option>`).join('');
+// IPFS setup
+const ipfsClient = require('ipfs-http-client');
+const ipfs = ipfsClient.create('https://ipfs.infura.io:5001');
 
-      const formHtml = `
-              <div id="registerForm">
-                  <button class="close" onclick="document.getElementById('registerForm').remove(); document.querySelector('.overlay').remove();">&times;</button>
-                  <h3>Register Your Pet</h3>
-                  <form id="petForm">
-                      <label for="petName">Select Pet:</label>
-                      <select id="petName">
-                          ${petOptions}
-                      </select>
-                      <input type="file" id="petImage" accept="image/*">
-                      <button type="submit" class="submit">Submit</button>
-                  </form>
-              </div>
-              <div class="overlay"></div>`;
+const contractAddress = 'C:\Users\ch243\Desktop\pet-shop-box-master\build\contracts\Registration.json';
+const registrationABI = [/* Your Contract ABI Here */];
+const registrationContract = new web3.eth.Contract(registrationABI, contractAddress);
 
-      document.body.insertAdjacentHTML('beforeend', formHtml);
-    })
-    .catch(error => console.error('Error fetching pet data:', error));
-});
+document.getElementById('registerPetForm').onsubmit = async function (event) {
+  event.preventDefault();
+
+  const name = document.getElementById('petName').value;
+  const photoFile = document.getElementById('petPhoto').files[0];
+  const registrationFee = document.getElementById('registrationFee').value;
+
+  // Upload photo to IPFS
+  const reader = new FileReader();
+  reader.readAsArrayBuffer(photoFile);
+  reader.onloadend = async () => {
+    const buffer = Buffer.from(reader.result);
+    const result = await ipfs.add(buffer);
+    const photoUrl = `https://ipfs.infura.io/ipfs/${result.path}`;
+
+    // Register pet on blockchain
+    const accounts = await web3.eth.getAccounts();
+    const weiFee = web3.utils.toWei(registrationFee, 'ether');
+    await registrationContract.methods.registerPet(name, photoUrl, weiFee).send({ from: accounts[0] });
+
+    alert("Pet registered successfully!");
+    // Close the modal
+    $('#registerPetModal').modal('hide');
+  };
+};

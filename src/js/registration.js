@@ -2,9 +2,9 @@
 const ipfsClient = require('ipfs-http-client');
 const ipfs = ipfsClient.create('https://ipfs.infura.io:5001');
 
-const contractAddress = 'C:\Users\ch243\Desktop\pet-shop-box-master\build\contracts\Registration.json';
-const registrationABI = [/* Your Contract ABI Here */];
-const registrationContract = new web3.eth.Contract(registrationABI, contractAddress);
+// const contractAddress = 'C:\Users\ch243\Desktop\pet-shop-box-master\build\contracts\Registration.json';
+// const registrationABI = [/* Your Contract ABI Here */];
+// const registrationContract = new web3.eth.Contract(registrationABI, contractAddress);
 
 document.getElementById('registerPetForm').onsubmit = async function (event) {
   event.preventDefault();

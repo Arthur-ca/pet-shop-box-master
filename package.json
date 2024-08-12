@@ -16,8 +16,9 @@
     "lite-server": "^2.3.0"
   },
   "dependencies": {
+    "@helia/verified-fetch": "^1.5.0",
     "ipfs-core": "^0.18.1",
-    "ipfs-http-client": "^60.0.1",
+    "ipfs-http-client": "^50.1.2",
     "web3": "^4.11.1"
   }
 }

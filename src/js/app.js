@@ -70,6 +70,7 @@ App = {
 
   bindEvents: function () {
     $(document).on('click', '.btn-adopt', App.handleAdopt);
+    $(document).on('submit', '#registerPetForm', App.handleRegisterPet);
   },
 
   markAdopted: function (adopters, account) {
@@ -115,6 +116,54 @@ App = {
         console.log(err.message);
       });
     });
+  },
+
+  handleRegisterPet: async function (event) {
+    event.preventDefault();
+
+    // Initialize IPFS
+    const https = require("https");
+    const projectId = "<API_KEY>";
+    const projectSecret = "<API_KEY_SECRET>";
+    const options = {
+      host: "ipfs.infura.io",
+      port: 5001,
+      path: "/api/v0/pin/add?arg=QmeGAVddnBSnKc1DLE7DLV9uuTqo5F7QbaveTjr45JUdQn",
+      method: "POST",
+      auth: projectId + ":" + projectSecret,
+    };
+    // const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' })
+    API_KEY = "";
+    API_KEY_SECRET = "";
+    xhr.setRequestHeader("Authorization", "Basic " + btoa(API_KEY + ":" + API_KEY_SECRET));
+
+    const name = document.getElementById('petName').value;
+    const photoFile = document.getElementById('petPhoto').files[0];
+    const registrationFee = document.getElementById('registrationFee').value;
+
+    // Upload photo to IPFS
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(photoFile);
+    reader.onloadend = async () => {
+      const buffer = Buffer.from(reader.result);
+      const result = await ipfs.add(buffer, (error, result) => {
+        console.log('Ipfs result', result)
+        if (error) {
+          console.error(error)
+          return
+        }
+      });
+      const photoUrl = `https://ipfs.infura.io/ipfs/${result.path}`;
+
+      // Register pet on blockchain
+      const accounts = await web3.eth.getAccounts();
+      const weiFee = web3.utils.toWei(registrationFee, 'ether');
+      await registrationContract.methods.registerPet(name, photoUrl, weiFee).send({ from: accounts[0] });
+
+      alert("Pet registered successfully!");
+      // Close the modal
+      $('#registerPetModal').modal('hide');
+    };
   },
 
   displayPets: function (pets) {

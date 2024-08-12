@@ -1,6 +1,9 @@
 // IPFS setup
-const ipfsClient = require('ipfs-http-client');
-const ipfs = ipfsClient.create('https://ipfs.infura.io:5001');
+// const ipfsClient = require('ipfs-http-client');
+// import * as IPFS from 'ipfs-core'
+
+const ipfs = await IPFS.create()
+// const ipfs = IpfsHttpClient.create({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' });
 
 const contractAddress = '0x6f6FC759B6127AddDa211C2170CD5773de8cb538';
 const registrationABI = [

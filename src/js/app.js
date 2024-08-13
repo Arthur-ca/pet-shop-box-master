@@ -2,29 +2,72 @@ App = {
   web3Provider: null,
   contracts: {},
   pets: [],//store pet data for filtering
+  cid: null,
 
   init: async function () {
-    // Load pets.
-    $.getJSON('../pets.json', function (data) {
-      App.pets = data;//Store data for filtering
-      var petsRow = $('#petsRow');
-      var petTemplate = $('#petTemplate');
+    let petsData;
 
-      for (i = 0; i < data.length; i++) {
-        petTemplate.find('.panel-title').text(data[i].name);
-        petTemplate.find('img').attr('src', data[i].picture);
-        petTemplate.find('.pet-breed').text(data[i].breed);
-        petTemplate.find('.pet-age').text(data[i].age);
-        petTemplate.find('.pet-location').text(data[i].location);
-        petTemplate.find('.btn-adopt').attr('data-id', data[i].id);
+    // Retrieve the CID from local storage
+    this.cid = localStorage.getItem('petsJsonCid');
 
-        petsRow.append(petTemplate.html());
-      }
-      //initialize filtering after loading pets
-      Filter.init();
-    });
+    if (!this.cid) {
+      // CID is null, fetch the local pets.json and upload to IPFS
+      console.log('CID is null, fetching local pets.json...');
+      const localPets = await this.fetchLocalPetsJSON();
+      this.pets = localPets;
+
+      const petsBlob = new Blob([JSON.stringify(localPets, null, 2)], { type: 'application/json' });
+      const cid = await window.pinFileToIPFS(petsBlob, 'pets.json');
+      this.cid = cid; // Store the CID for future use
+      console.log('Initial pets.json uploaded to IPFS with CID:', cid);
+
+      // Store the new CID in local storage
+      localStorage.setItem('petsJsonCid', cid);
+
+      petsData = localPets;
+    } else {
+      // CID is not null, fetch the updated pets.json from IPFS
+      console.log('CID is not null, fetching pets.json from IPFS...');
+      petsData = await window.fetchFileFromIPFS(this.cid);
+      this.pets = petsData;
+    }
+
+    // Populate the UI with the pets data
+    this.populatePets(petsData);
+
+    // Initialize filtering after loading pets
+    Filter.init();
 
     return await App.initWeb3();
+  },
+
+  fetchLocalPetsJSON: async function () {
+    // Fetch pets.json from the local server
+    return new Promise((resolve, reject) => {
+      $.getJSON('../pets.json', function (data) {
+        resolve(data);
+      }).fail(function (jqxhr, textStatus, error) {
+        const err = textStatus + ", " + error;
+        console.error('Request Failed: ' + err);
+        reject(err);
+      });
+    });
+  },
+
+  populatePets: function (data) {
+    var petsRow = $('#petsRow');
+    var petTemplate = $('#petTemplate');
+
+    for (let i = 0; i < data.length; i++) {
+      petTemplate.find('.panel-title').text(data[i].name);
+      petTemplate.find('img').attr('src', data[i].picture);
+      petTemplate.find('.pet-breed').text(data[i].breed);
+      petTemplate.find('.pet-age').text(data[i].age);
+      petTemplate.find('.pet-location').text(data[i].location);
+      petTemplate.find('.btn-adopt').attr('data-id', data[i].id);
+
+      petsRow.append(petTemplate.html());
+    }
   },
 
   initWeb3: async function () {
@@ -53,18 +96,12 @@ App = {
   },
 
   initContract: function () {
-    $.getJSON('Registration.json', function (petRegistryData) {
-      var PetRegistryArtifact = petRegistryData;
-      App.contracts.PetRegistry = TruffleContract(PetRegistryArtifact);
-      App.contracts.PetRegistry.setProvider(App.web3Provider);
+    $.getJSON('Adoption.json', function (petAdoptionData) {
+      var AdoptionArtifact = petAdoptionData;
+      App.contracts.Adoption = TruffleContract(AdoptionArtifact);
+      App.contracts.Adoption.setProvider(App.web3Provider);
 
-      $.getJSON('Adoption.json', function (petAdoptionData) {
-        var AdoptionArtifact = petAdoptionData;
-        App.contracts.Adoption = TruffleContract(AdoptionArtifact);
-        App.contracts.Adoption.setProvider(App.web3Provider);
-
-        return App.markAdopted();
-      });
+      return App.markAdopted();
     });
 
     return App.bindEvents();
@@ -124,41 +161,54 @@ App = {
     event.preventDefault();
 
     const file = document.getElementById('petPhoto').files[0];
-    const fileName = $('#petName').val();
+    const petName = $('#petName').val();
     const breed = $('#petBreed').val();
+    const age = $('#petAge').val();
+    const location = $('#petLocation').val();
+    const adoptionFee = $('#adoptionFee').val();
     console.log('File selected:', file);
-    console.log('Pet name entered:', fileName);
+    console.log('Pet name entered:', petName);
 
     try {
       console.log('Attempting to pin file to IPFS...');
-      const ipfsHash = await window.pinFileToIPFS(file, fileName);
+      const ipfsHash = await window.pinFileToIPFS(file, petName);
       const photoURI = `https://azure-lazy-vulture-311.mypinata.cloud/ipfs/${ipfsHash}`;
       console.log('File pinned to IPFS with URI:', photoURI);
 
-      console.log('Attempting to register pet on the blockchain...');
-      web3.eth.getAccounts(function (error, accounts) {
-        if (error) {
-          console.error('Error retrieving accounts:', error);
-          return;
-        }
+      // Step 3: Fetch the existing pets data from IPFS using the stored CID
+      console.log('Fetching existing pets data from IPFS...');
+      const petsData = await window.fetchFileFromIPFS(App.cid);
 
-        const account = accounts[0];
-        console.log('Using account:', account);
+      // Prepare pet data to register
+      const petData = {
+        id: petsData.length + 1, // Use a timestamp as a unique ID
+        name: petName,
+        picture: photoURI,
+        age: age,
+        breed: breed,
+        location: location,
+        adoptionFee: adoptionFee,
+        registeredAt: new Date().toISOString().split('T')[0]
+      };
 
-        App.contracts.PetRegistry.deployed().then(function (instance) {
-          return instance.registerPet(petName, breed, photoURI, { from: account });
-        }).then(function (result) {
-          console.log('Pet registered successfully on the blockchain:', result);
-          window.location.reload();
-        }).catch(function (err) {
-          console.error('Error registering pet on the blockchain:', err);
-        });
-      });
+      // Step 4: Add the new pet data to the existing pets data
+      petsData.push(petData);
+      console.log('Pets Data', petsData)
+
+      // Step 5: Upload the updated pets.json to IPFS
+      console.log('Uploading updated pets.json to IPFS...');
+      const updatedPetsBlob = new Blob([JSON.stringify(petsData, null, 2)], { type: 'application/json' });
+      console.log('Blob: ', updatedPetsBlob)
+      const newCid = await window.pinFileToIPFS(updatedPetsBlob, 'pets.json');
+      console.log('Updated pets.json file uploaded to IPFS with new CID:', newCid);
+
+      localStorage.setItem('petsJsonCid', newCid);
+      App.displayPets(petsData)
+
     } catch (error) {
       console.error('Error during pet registration:', error);
     }
   },
-
 
 
   displayPets: function (pets) {

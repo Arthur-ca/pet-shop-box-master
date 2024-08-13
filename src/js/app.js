@@ -47,22 +47,24 @@ App = {
     else {
       App.web3Provider = new Web3.providers.HttpProvider('http://localhost:7545');
     }
-    web3 = new Web3(App.web3Provider);
+    window.web3 = new Web3(App.web3Provider);
 
     return App.initContract();
   },
 
   initContract: function () {
-    $.getJSON('Adoption.json', function (data) {
-      // Get the necessary contract artifact file and instantiate it with truffle-contract
-      var AdoptionArtifact = data;
-      App.contracts.Adoption = TruffleContract(AdoptionArtifact);
+    $.getJSON('Registration.json', function (petRegistryData) {
+      var PetRegistryArtifact = petRegistryData;
+      App.contracts.PetRegistry = TruffleContract(PetRegistryArtifact);
+      App.contracts.PetRegistry.setProvider(App.web3Provider);
 
-      // Set the provider for our contract
-      App.contracts.Adoption.setProvider(App.web3Provider);
+      $.getJSON('Adoption.json', function (petAdoptionData) {
+        var AdoptionArtifact = petAdoptionData;
+        App.contracts.Adoption = TruffleContract(AdoptionArtifact);
+        App.contracts.Adoption.setProvider(App.web3Provider);
 
-      // Use our contract to retrieve and mark the adopted pets
-      return App.markAdopted();
+        return App.markAdopted();
+      });
     });
 
     return App.bindEvents();
@@ -121,50 +123,43 @@ App = {
   handleRegisterPet: async function (event) {
     event.preventDefault();
 
-    // Initialize IPFS
-    const https = require("https");
-    const projectId = "<API_KEY>";
-    const projectSecret = "<API_KEY_SECRET>";
-    const options = {
-      host: "ipfs.infura.io",
-      port: 5001,
-      path: "/api/v0/pin/add?arg=QmeGAVddnBSnKc1DLE7DLV9uuTqo5F7QbaveTjr45JUdQn",
-      method: "POST",
-      auth: projectId + ":" + projectSecret,
-    };
-    // const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' })
-    API_KEY = "";
-    API_KEY_SECRET = "";
-    xhr.setRequestHeader("Authorization", "Basic " + btoa(API_KEY + ":" + API_KEY_SECRET));
+    const file = document.getElementById('petPhoto').files[0];
+    const fileName = $('#petName').val();
+    const breed = $('#petBreed').val();
+    console.log('File selected:', file);
+    console.log('Pet name entered:', fileName);
 
-    const name = document.getElementById('petName').value;
-    const photoFile = document.getElementById('petPhoto').files[0];
-    const registrationFee = document.getElementById('registrationFee').value;
+    try {
+      console.log('Attempting to pin file to IPFS...');
+      const ipfsHash = await window.pinFileToIPFS(file, fileName);
+      const photoURI = `https://azure-lazy-vulture-311.mypinata.cloud/ipfs/${ipfsHash}`;
+      console.log('File pinned to IPFS with URI:', photoURI);
 
-    // Upload photo to IPFS
-    const reader = new FileReader();
-    reader.readAsArrayBuffer(photoFile);
-    reader.onloadend = async () => {
-      const buffer = Buffer.from(reader.result);
-      const result = await ipfs.add(buffer, (error, result) => {
-        console.log('Ipfs result', result)
+      console.log('Attempting to register pet on the blockchain...');
+      web3.eth.getAccounts(function (error, accounts) {
         if (error) {
-          console.error(error)
-          return
+          console.error('Error retrieving accounts:', error);
+          return;
         }
+
+        const account = accounts[0];
+        console.log('Using account:', account);
+
+        App.contracts.PetRegistry.deployed().then(function (instance) {
+          return instance.registerPet(petName, breed, photoURI, { from: account });
+        }).then(function (result) {
+          console.log('Pet registered successfully on the blockchain:', result);
+          window.location.reload();
+        }).catch(function (err) {
+          console.error('Error registering pet on the blockchain:', err);
+        });
       });
-      const photoUrl = `https://ipfs.infura.io/ipfs/${result.path}`;
-
-      // Register pet on blockchain
-      const accounts = await web3.eth.getAccounts();
-      const weiFee = web3.utils.toWei(registrationFee, 'ether');
-      await registrationContract.methods.registerPet(name, photoUrl, weiFee).send({ from: accounts[0] });
-
-      alert("Pet registered successfully!");
-      // Close the modal
-      $('#registerPetModal').modal('hide');
-    };
+    } catch (error) {
+      console.error('Error during pet registration:', error);
+    }
   },
+
+
 
   displayPets: function (pets) {
     const petsRow = $('#petsRow');

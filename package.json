@@ -17,8 +17,11 @@
   },
   "dependencies": {
     "@helia/verified-fetch": "^1.5.0",
+    "browserify": "^17.0.0",
     "ipfs-core": "^0.18.1",
     "ipfs-http-client": "^50.1.2",
-    "web3": "^4.11.1"
+    "kubo-rpc-client": "^4.1.1",
+    "web3": "^4.11.1",
+    "web3-utils": "^4.3.1"
   }
 }

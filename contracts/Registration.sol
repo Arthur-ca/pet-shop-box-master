@@ -1,29 +1,28 @@
-pragma solidity ^0.5.0;
-pragma experimental ABIEncoderV2;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 contract Registration {
     struct Pet {
         uint id;
         string name;
-        string photoUrl;
-        address owner;
-        uint registrationFee;
+        string breed;
+        string photoURI;
+        address payable owner;
     }
 
-    Pet[] public pets;
-    mapping(uint => address) public petToOwner;
     uint public petCount = 0;
+    mapping(uint => Pet) public pets;
 
-    event PetRegistered(uint id, string name, string photoUrl, uint registrationFee, address owner);
+    event PetRegistered(uint id, string name, string breed, string photoURI, address owner);
 
-    function registerPet(string memory _name, string memory _photoUrl, uint _registrationFee) public {
-        pets.push(Pet(petCount, _name, _photoUrl, msg.sender, _registrationFee));
-        petToOwner[petCount] = msg.sender;
-        emit PetRegistered(petCount, _name, _photoUrl, _registrationFee, msg.sender);
+    function registerPet(string memory _name, string memory _breed, string memory _photoURI) public {
         petCount++;
+        pets[petCount] = Pet(petCount, _name, _breed, _photoURI, payable(msg.sender));
+
+        emit PetRegistered(petCount, _name, _breed, _photoURI, msg.sender);
     }
 
-    function getPets() public view returns (Pet[] memory) {
-        return pets;
+    function getPet(uint petId) public view returns (Pet memory) {
+        return pets[petId];
     }
 }

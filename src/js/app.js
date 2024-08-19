@@ -60,6 +60,10 @@ App = {
 
     for (let i = 0; i < data.length; i++) {
       console.log('Processing Pet:', data[i]); // Log each pet being processed
+      // Set the state to 'available' if it's not defined
+      if (!data[i].state || data[i].state === '') {
+        data[i].state = 'available';
+      }
       petTemplate.find('.panel-title').text(data[i].name);
       petTemplate.find('img').attr('src', data[i].picture);
       petTemplate.find('.pet-breed').text(data[i].breed);
@@ -131,9 +135,17 @@ App = {
     }).then(function (adopters) {
       for (i = 0; i < adopters.length; i++) {
         if (adopters[i] !== '0x0000000000000000000000000000000000000000') {
-          $('.panel-pet').eq(i).find('.btn-adopt').text('Success').attr('disabled', true);
+          //$('.panel-pet').eq(i).find('.btn-adopt').text('Success').attr('disabled', true);
+          // Update the state text to "unavailable" in the UI
+          $('.panel-pet').eq(i).find('.pet-state').text('unavailale');//1
+          // update the state in the App.pets array as well
+          if (App.pets[i]) {
+            App.pets[i].state = 'unavailable';
+          }
         }
       }
+      // Update the entire UI to reflect the latest states in App.pets
+      App.displayPets(App.pets);
     }).catch(function (err) {
       console.log(err.message);
     });
@@ -231,7 +243,12 @@ App = {
       petTemplate.find('.pet-breed').text(pet.breed);
       petTemplate.find('.pet-age').text(pet.age);
       petTemplate.find('.pet-location').text(pet.location);
+      petTemplate.find('.pet-state').text(pet.state);
       petTemplate.find('.btn-adopt').attr('data-id', pet.id);
+      // Check if the pet is adopted and disable the Adopt button if necessary
+      if (pet.state === 'unavailable') {
+        petTemplate.find('.btn-adopt').text('Success').attr('disabled', true);
+      }
 
       petsRow.append(petTemplate.html());
     });

@@ -19,9 +19,51 @@
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
   <style>
-    .filter-section {
-      border-right: 1px solid #ddd;
-      padding-right: 20px;
+    #filtersForm {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      /* Distribute space evenly between filters */
+    }
+
+    #filtersForm .form-group {
+      margin-right: 15px;
+      /* Space between form groups */
+    }
+
+    #filtersForm .form-group:last-child {
+      margin-right: 0;
+      /* Remove margin from the last item */
+    }
+
+    #filtersForm label {
+      margin-right: 5px;
+    }
+
+    .form-control {
+      display: inline-block;
+      width: auto;
+      /* Ensure inputs don't take the full width */
+    }
+
+    /* Ensure the form is responsive */
+    @media (max-width: 768px) {
+      #filtersForm {
+        flex-wrap: wrap;
+        /* Wrap filters to the next line on smaller screens */
+      }
+
+      #filtersForm .form-group {
+        flex: 1 1 100%;
+        /* Make each filter take up the full width on small screens */
+        margin-bottom: 10px;
+      }
+
+      #filtersForm .form-group label,
+      #filtersForm .form-group .form-control {
+        width: 100%;
+        /* Make labels and inputs full width on small screens */
+      }
     }
   </style>
 </head>
@@ -86,10 +128,10 @@
 
     <!-- filtering -->
     <div class="row">
-      <div class="'col-xs-12 col-sm-3 filter-section">
-        <from id="'filtersForm">
+      <div class="col-xs-12">
+        <form id="filtersForm" class="form-inline"> <!-- Added form-inline class for horizontal alignment -->
           <div class="form-group">
-            <label for="'breedFilter">Breed:</label>
+            <label for="breedFilter">Breed:</label>
             <select id="breedFilter" class="form-control">
               <option value="">All</option>
               <option value="Scottish Terrier">Scottish Terrier</option>
@@ -97,46 +139,50 @@
               <option value="Boxer">Boxer</option>
               <option value="Golden Retriever">Golden Retriever</option>
             </select>
-            <div class="form-group">
-              <label for="locationfilter">Location:</label>
-              <select id="locationFilter" class="form-control">
-                <option value="">All</option>
-                <option value="Innsbrook, Illinois">Innsbrook, Illinois</option>
-                <option value="Soudan, Louisiana">Soudan, Louisiana</option>
-                <option value="Jacksonwald, Palau">Jacksonwald, Palau</option>
-                <option value="Matheny, Utah">Matheny, Utah</option>
-                <option value="Tyhee, Indiana">Tyhee, Indiana</option>
-                <option value="Windsor, Montana">Windsor, Montana</option>
-                <option value="Kingstowne, Nevada">Kingstowne, Nevada</option>
-                <option value="Sultana, Massachusetts">Sultana, Massachusetts</option>
-                <option value="Broadlands, Oregon">Broadlands, Oregon</option>
-                <option value="Dawn, Wisconsin">Dawn, Wisconsin</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="ageFilter">Age:</label>
-              <select id="ageFilter" class="form-control">
-                <option value="">All</option>
-                <option value="less than 1">less than 1</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-              </select>
-            </div>
-            <div class="form-goup">
-              <label for="stateFilter">State:</label>
-              <select id="stateFilter" class="form-control">
-                <option value="">All</option>
-                <option value="Available">Available</option>
-                <option value="Unabailable">Unavailable</option>
-              </select>
-            </div>
           </div>
-        </from>
+
+          <div class="form-group">
+            <label for="locationFilter">Location:</label>
+            <select id="locationFilter" class="form-control">
+              <option value="">All</option>
+              <option value="Innsbrook, Illinois">Innsbrook, Illinois</option>
+              <option value="Soudan, Louisiana">Soudan, Louisiana</option>
+              <option value="Jacksonwald, Palau">Jacksonwald, Palau</option>
+              <option value="Matheny, Utah">Matheny, Utah</option>
+              <option value="Tyhee, Indiana">Tyhee, Indiana</option>
+              <option value="Windsor, Montana">Windsor, Montana</option>
+              <option value="Kingstowne, Nevada">Kingstowne, Nevada</option>
+              <option value="Sultana, Massachusetts">Sultana, Massachusetts</option>
+              <option value="Broadlands, Oregon">Broadlands, Oregon</option>
+              <option value="Dawn, Wisconsin">Dawn, Wisconsin</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="ageFilter">Age:</label>
+            <select id="ageFilter" class="form-control">
+              <option value="">All</option>
+              <option value="less than 1">less than 1</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="stateFilter">State:</label>
+            <select id="stateFilter" class="form-control">
+              <option value="">All</option>
+              <option value="available">Available</option>
+              <option value="unavailable">Unavailable</option>
+            </select>
+          </div>
+        </form>
       </div>
     </div>
+
     <br />
 
     <div id="petsRow" class="row">
@@ -157,6 +203,7 @@
           <strong>Breed</strong>: <span class="pet-breed">Golden Retriever</span><br />
           <strong>Age</strong>: <span class="pet-age">3</span><br />
           <strong>Location</strong>: <span class="pet-location">Warren, MI</span><br /><br />
+          <strong>State:</strong> <span class="pet-state">PET_STATE</span><br /><br />
           <button class="btn btn-default btn-adopt" type="button" data-id="0">Adopt</button>
           <!-- add spond button as a new feature -->
           <button class="btn btn-default btn-spond" type="button" data-id="0">Spond</button>

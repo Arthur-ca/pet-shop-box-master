@@ -31,7 +31,7 @@ App = {
       petsData = await window.fetchFileFromIPFS(this.cid);
       this.pets = petsData;
     }
-
+    console.log('Loaded Pets Data:', petsData); // Log the loaded pets data
     // Populate the UI with the pets data
     this.populatePets(petsData);
 
@@ -59,11 +59,20 @@ App = {
     var petTemplate = $('#petTemplate');
 
     for (let i = 0; i < data.length; i++) {
+      console.log('Processing Pet:', data[i]); // Log each pet being processed
       petTemplate.find('.panel-title').text(data[i].name);
       petTemplate.find('img').attr('src', data[i].picture);
       petTemplate.find('.pet-breed').text(data[i].breed);
       petTemplate.find('.pet-age').text(data[i].age);
       petTemplate.find('.pet-location').text(data[i].location);
+      // Check if state exists
+      if (data[i].state) {
+        console.log('State exists for ' + data[i].name + ': ' + data[i].state);
+        petTemplate.find('.pet-state').text(data[i].state);  // Display the state
+      } else {
+        console.log('No state found for ' + data[i].name);
+      }
+      // petTemplate.find('.pet-state').text(data[i].state);  // Add this line to include the state
       petTemplate.find('.btn-adopt').attr('data-id', data[i].id);
 
       petsRow.append(petTemplate.html());

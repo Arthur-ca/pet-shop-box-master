@@ -19,6 +19,7 @@
     "@helia/verified-fetch": "^1.5.0",
     "browserify": "^17.0.0",
     "chalk": "^5.3.0",
+    "debug": "^4.3.6",
     "ipfs-core": "^0.18.1",
     "ipfs-http-client": "^50.1.2",
     "kubo-rpc-client": "^4.1.1",

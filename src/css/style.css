@@ -1,3 +1,50 @@
+#filtersForm {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Distribute space evenly between filters */
+}
+
+#filtersForm .form-group {
+    margin-right: 15px;
+    /* Space between form groups */
+}
+
+#filtersForm .form-group:last-child {
+    margin-right: 0;
+    /* Remove margin from the last item */
+}
+
+#filtersForm label {
+    margin-right: 5px;
+}
+
+#filtersForm .form-control {
+    display: inline-block;
+    width: auto;
+    /* Ensure inputs don't take the full width */
+}
+
+/* Ensure the form is responsive */
+@media (max-width: 768px) {
+    #filtersForm {
+        flex-wrap: wrap;
+        /* Wrap filters to the next line on smaller screens */
+    }
+
+    #filtersForm .form-group {
+        flex: 1 1 100%;
+        /* Make each filter take up the full width on small screens */
+        margin-bottom: 10px;
+    }
+
+    #filtersForm .form-group label,
+    #filtersForm .form-group .form-control {
+        width: 100%;
+        /* Make labels and inputs full width on small screens */
+    }
+}
+
 #registerBtn {
     display: block;
     margin-top: 20px;

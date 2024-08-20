@@ -59,7 +59,7 @@ App = {
     var petTemplate = $('#petTemplate');
 
     for (let i = 0; i < data.length; i++) {
-      console.log('Processing Pet:', data[i]); // Log each pet being processed
+      // console.log('Processing Pet:', data[i]); // Log each pet being processed
       // Set the state to 'available' if it's not defined
       if (!data[i].state || data[i].state === '') {
         data[i].state = 'available';
@@ -71,7 +71,7 @@ App = {
       petTemplate.find('.pet-location').text(data[i].location);
       // Check if state exists
       if (data[i].state) {
-        console.log('State exists for ' + data[i].name + ': ' + data[i].state);
+        // console.log('State exists for ' + data[i].name + ': ' + data[i].state);
         petTemplate.find('.pet-state').text(data[i].state);  // Display the state
       } else {
         console.log('No state found for ' + data[i].name);
@@ -132,7 +132,7 @@ App = {
       adoptionInstance = instance;
 
       return adoptionInstance.getAdopters.call();
-    }).then(function (adopters) {
+    }).then(async function (adopters) {
       for (i = 0; i < adopters.length; i++) {
         if (adopters[i] !== '0x0000000000000000000000000000000000000000') {
           //$('.panel-pet').eq(i).find('.btn-adopt').text('Success').attr('disabled', true);
@@ -143,6 +143,23 @@ App = {
             App.pets[i].state = 'unavailable';
           }
         }
+      }
+      // Re-upload the updated pets.json to IPFS
+      try {
+        console.log('Uploading updated pets.json to IPFS...');
+        const updatedPetsBlob = new Blob([JSON.stringify(App.pets, null, 2)], { type: 'application/json' });
+        const newCid = await window.pinFileToIPFS(updatedPetsBlob, 'pets.json');
+        console.log('Updated pets.json file uploaded to IPFS with new CID:', newCid);
+
+        // Store the new CID
+        localStorage.setItem('petsJsonCid', newCid);
+        App.cid = newCid; // Update the CID in App
+
+        // Optionally, you can also update the filters if necessary
+        Filter.fetchAndPopulateFilters();
+
+      } catch (error) {
+        console.error('Error uploading updated pets.json to IPFS:', error);
       }
       // Update the entire UI to reflect the latest states in App.pets
       App.displayPets(App.pets);
@@ -172,6 +189,9 @@ App = {
         return adoptionInstance.adopt(petId, { from: account });
       }).then(function (result) {
         return App.markAdopted();
+      }).then(function () {
+        // Re-populate filters after adoption
+        Filter.fetchAndPopulateFilters();
       }).catch(function (err) {
         console.log(err.message);
       });
@@ -225,6 +245,7 @@ App = {
 
       localStorage.setItem('petsJsonCid', newCid);
       App.displayPets(petsData)
+      Filter.fetchAndPopulateFilters();
 
     } catch (error) {
       console.error('Error during pet registration:', error);

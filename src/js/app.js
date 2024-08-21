@@ -105,6 +105,9 @@ App = {
     }
     window.web3 = new Web3(App.web3Provider);
 
+    await App.initContract();
+    await App.initSpondContract();
+
     return App.initContract();
   },
 
@@ -120,8 +123,21 @@ App = {
     return App.bindEvents();
   },
 
+  initSpondContract: function () {
+    $.getJSON('Spond.json', function (spondContractData) {
+      var SpondArtifact = spondContractData;
+      App.contracts.Spond = TruffleContract(SpondArtifact);
+      App.contracts.Spond.setProvider(App.web3Provider);
+
+      return App.markSponded();
+    });
+
+    return App.bindEvents();
+  },
+
   bindEvents: function () {
     $(document).on('click', '.btn-adopt', App.handleAdopt);
+    $(document).on('click', '.btn-spond', App.handleSpond);
     $(document).on('submit', '#registerPetForm', App.handleRegisterPet);
   },
 
@@ -135,7 +151,6 @@ App = {
     }).then(async function (adopters) {
       for (i = 0; i < adopters.length; i++) {
         if (adopters[i] !== '0x0000000000000000000000000000000000000000') {
-          //$('.panel-pet').eq(i).find('.btn-adopt').text('Success').attr('disabled', true);
           // Update the state text to "unavailable" in the UI
           $('.panel-pet').eq(i).find('.pet-state').text('unavailale');//1
           // update the state in the App.pets array as well
@@ -195,6 +210,61 @@ App = {
       }).catch(function (err) {
         console.log(err.message);
       });
+    });
+  },
+  // Spond functionality
+  handleSpond: function (event) {
+    event.preventDefault();
+
+    var petId = parseInt($(event.target).data('id'));
+    // Check if the pet is already adopted before allowing to spond
+    if (App.pets[petId].state === 'unavailable') {
+      console.log("This pet has already been adopted. Sponsorship is not allowed.");
+      return;
+    }
+    var spondInstance;
+
+
+    web3.eth.getAccounts(function (error, accounts) {
+      if (error) {
+        console.log(error);
+      }
+
+      var account = accounts[0];
+
+      App.contracts.Spond.deployed().then(function (instance) {
+        spondInstance = instance;
+
+        // Send 0.001 ETH as part of the spond transaction
+        return spondInstance.spond(petId, { from: account, value: web3.utils.toWei('0.001', 'ether') });
+      }).then(function (result) {
+        // Provide feedback to the user
+        $('.panel-pet').eq(petId).find('.btn-spond').text('Thank you!').attr('disabled', true);
+        setTimeout(() => {
+          $('.panel-pet').eq(petId).find('.btn-spond').text('Spond').attr('disabled', false);
+        }, 3000);
+        return App.markSponded();
+      }).catch(function (err) {
+        console.log(err.message);
+      });
+    });
+  },
+
+  markSponded: function (sponsors, account) {
+    var spondInstance;
+
+    App.contracts.Spond.deployed().then(function (instance) {
+      spondInstance = instance;
+
+      return spondInstance.getSponsors.call();
+    }).then(function (sponsors) {
+      for (i = 0; i < sponsors.length; i++) {
+        if (sponsors[i] !== '0x0000000000000000000000000000000000000000') {
+          $('.panel-pet').eq(i).find('.btn-spond').text('Sponsored').attr('disabled', true);
+        }
+      }
+    }).catch(function (err) {
+      console.log(err.message);
     });
   },
 
@@ -266,9 +336,10 @@ App = {
       petTemplate.find('.pet-location').text(pet.location);
       petTemplate.find('.pet-state').text(pet.state);
       petTemplate.find('.btn-adopt').attr('data-id', pet.id);
-      // Check if the pet is adopted and disable the Adopt button if necessary
+      // Check if the pet is adopted and disable the Adopt button and Spond button
       if (pet.state === 'unavailable') {
         petTemplate.find('.btn-adopt').text('Success').attr('disabled', true);
+        petTemplate.find('.btn-spond').attr('disabled', true)
       }
 
       petsRow.append(petTemplate.html());

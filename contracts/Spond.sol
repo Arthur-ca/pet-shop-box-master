@@ -2,21 +2,21 @@
 pragma solidity ^0.5.0;
 
 contract Spond {
-  address[16] public sponsors;
-  uint public spondAmount = 0.1 ether; // Fixed amount to spond a pet
+    // Array to store the sponsors for each pet
+    address[16] public sponsors;
 
-  // Sponding a pet
-  function spond(uint petId) public payable returns (uint) {
-      require(petId >= 0 && petId <= 15, "Invalid pet ID");
-      require(msg.value == spondAmount, "Incorrect ETH amount sent for sponding");
+    // Spond function to allow sending a fixed amount of ETH
+    function spond(uint petId) public payable returns (uint) {
+        require(petId >= 0 && petId <= 15, "Invalid pet ID");
+        require(msg.value == 0.001 ether, "Send exactly 0.001 ETH");
 
-       sponsors[petId] = msg.sender;
-       return petId;
-  }
+        sponsors[petId] = msg.sender;
 
-  // Retrieving the sponsors
-   function getSponsors() public view returns (address[16] memory) {
-       return sponsors;
-}
+        return petId;
+    }
 
+    // Function to retrieve the sponsors
+    function getSponsors() public view returns (address[16] memory) {
+        return sponsors;
+    }
 }

@@ -120,23 +120,25 @@ App = {
     try {
       const adoptionInstance = await App.contracts.Adoption.deployed();
       const adopters = await adoptionInstance.getAdopters.call();
+      const petsData = await window.fetchFileFromIPFS(App.cid);
 
       adopters.forEach((adopter, index) => {
         if (adopter !== '0x0000000000000000000000000000000000000000') {
           $('.panel-pet').eq(index).find('.pet-state').text('unavailable');
-          if (App.pets[index]) {
-            App.pets[index].state = 'unavailable';
+          if (petsData[index]) {
+            petsData[index].state = 'unavailable';
+            console.log("petsData", petsData);
           }
         }
       });
 
-      const updatedPetsBlob = new Blob([JSON.stringify(App.pets, null, 2)], { type: 'application/json' });
+      const updatedPetsBlob = new Blob([JSON.stringify(petsData, null, 2)], { type: 'application/json' });
       const newCid = await window.pinFileToIPFS(updatedPetsBlob, 'pets.json');
       localStorage.setItem('petsJsonCid', newCid);
       App.cid = newCid;
 
       Filter.fetchAndPopulateFilters();
-      App.displayPets(App.pets);
+      App.displayPets(petsData);
     } catch (error) {
       console.error('Error in markAdopted:', error.message);
     }
@@ -222,7 +224,7 @@ App = {
 
       // Prepare pet data to register
       const petData = {
-        id: petsData.length + 1,
+        id: petsData.length,
         name: petName,
         picture: photoURI,
         age: age,
@@ -239,10 +241,13 @@ App = {
       const updatedPetsBlob = new Blob([JSON.stringify(petsData, null, 2)], { type: 'application/json' });
       const newCid = await window.pinFileToIPFS(updatedPetsBlob, 'pets.json');
       localStorage.setItem('petsJsonCid', newCid);
+      App.cid = newCid;
 
-      App.displayPets(petsData)
+      App.displayPets(petsData);
+      Filter.populateFilters(petsData);
       Filter.fetchAndPopulateFilters();
       $('#registerPetModal').modal('hide');
+      document.getElementById('registerPetForm').reset();
 
     } catch (error) {
       console.error('Error during pet registration:', error);

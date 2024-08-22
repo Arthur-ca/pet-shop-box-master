@@ -23,16 +23,19 @@ const Filter = {
     const ageFilter = $('#ageFilter');
     const stateFilter = $('#stateFilter');
 
-    const breeds = [...new Set(petData.map(pet => pet.breed))].sort();
-    const locations = [...new Set(petData.map(pet => pet.location))].sort();
-    const ages = [...new Set(petData.map(pet => pet.age))].sort((a, b) => a - b);
-    const states = [...new Set(petData.map(pet => pet.state))].sort();
+    const breeds = Array.from(new Set(petData.map(pet => pet.breed))).sort();
+    const locations = Array.from(new Set(petData.map(pet => pet.location))).sort();
+    const ages = Array.from(new Set(petData.map(pet => pet.age))).sort((a, b) => a - b);
+    const states = Array.from(new Set(petData.map(pet => pet.state))).sort();
+
 
     function populateSelectOptions(selectElement, options) {
       selectElement.empty(); // Clear existing options
       selectElement.append('<option value="">All</option>'); // Default option
       options.forEach(option => {
-        selectElement.append(`<option value="${option}">${option}</option>`);
+        if (option && !selectElement.find(`option[value="${option}"]`).length) {
+          selectElement.append(`<option value="${option}">${option}</option>`);
+        }
       });
     }
 
@@ -42,13 +45,15 @@ const Filter = {
     populateSelectOptions(stateFilter, states);
   },
 
-  applyFilters: function () {
+  applyFilters: async function () {
     const breedFilter = $('#breedFilter').val();
     const ageFilter = $('#ageFilter').val();
     const locationFilter = $('#locationFilter').val();
     const stateFilter = $('#stateFilter').val();
+    const cidd = App.cid;
+    const petData = await window.fetchFileFromIPFS(cidd);
 
-    const filteredPets = App.pets.filter((pet) => {
+    const filteredPets = petData.filter((pet) => {
       const breedMatch = breedFilter === '' || pet.breed === breedFilter;
       const ageMatch = ageFilter === '' || pet.age == ageFilter;
       const locationMatch = locationFilter === '' || pet.location === locationFilter;

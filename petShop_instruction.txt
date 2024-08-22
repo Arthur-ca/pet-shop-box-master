@@ -1,0 +1,131 @@
+tested for:
+Truffle v5.11.5 (core: 5.11.5)
+Ganache v7.9.1
+Solidity - ^0.5.0 (solc-js)
+Node v20.15.0
+Web3.js v1.10.0
+lite-server ^2.3.0"
+
+Before you start, please read the following tutorial files called Pet shop and it is at:
+https://www.trufflesuite.com/tutorial 
+https://www.trufflesuite.com/boxes
+Use the rar files provided in the homework link:
+pet-shop-box-master.zip (starting pet shop)
+
+SOFTWARE INSTALLATION
+
+Install the nodejs javascript runtime environment:
+https://nodejs.org/en/download/
+in windows:
+you can use the included msi file
+once installed, edit the path variable (in windows):
+add ;C:\Program Files\nodejs\
+To the end of your Path variable 
+on the "User variable" section 
+of the Environment Variables 
+on the System Properties.
+If you never did this before read this:
+https://www.h3xed.com/windows/how-to-add-to-and-edit-windows-path-variable
+
+Install the Truffle IDE globally from the windows terminal:
+npm uninstall -g truffle
+npm install -g truffle@v5.11.5  (use this version to run the tests)
+Mac: check out https://www.mobilefish.com/developer/blockchain/blockchain_quickguide_truffle.html
+
+Install liteserver globally from the windows terminal:
+npm install -g lite-server
+or goto: https://www.npmjs.com/package/lite-server
+
+When you finish the installation open the cmd prompt (terminal) and type:
+
+truffle version
+
+you should see:
+Truffle v5.11.5 (core: 5.11.5)
+Solidity - ^0.5.0 (solc-js)
+Node v20.15.0
+Web3.js v1.10.0
+
+if the versions are too high it is easiest to just install node with the correct versions.
+
+Install Ganache:
+http://truffleframework.com/ganache and click the download button
+you should see Ganache started at http://127.0.0.1:7545
+run Ganache, quitstart mode
+Open Ganache:
+In Ganache Accounts tab you should see 10 addresses each with 100 tesntet ether you have access to.
+
+run Ganache (w/workspace):
+run Ganache, workspace mode
+Workspace name: Petshop
+ADD PROJECT: navigate and select truffle-config.js
+save workspace
+The workspace has the advantage of providing contract information in Ganache
+under the tab called CONTRACTS
+it shows the contracts, the state variables, the calls and the transactions
+
+Intall Metamask in your **default** browser:
+https://metamask.io/download.html
+
+Configure Metamask with Ganache:
+select: "No, I already have a seed phrase", import wallet
+copy the MNEMONIC from Ganache and paste it into
+"Enter your secret twelve word phrase here to restore your vault.
+Wallet Seed:"
+provide a password
+import
+GOTO: Main Ethereum Network Dropdown List (top right), 
+and add a new network
+New RPC URL field:
+copy RPC server address from Ganache (should be HTTP://127.0.0.1:7545) and paste it to New RPC URL
+Chain ID field:
+write Ganache's Chain ID: 1337 = 0x539 in hex
+
+Message:
+The message "This Chain ID is currently used by the Localhost 8545 network" can be disregarded
+Ganache is at HTTP://127.0.0.1:7545 and this setup still works without any further changes. 
+Ganache-cli is at HTTP://127.0.0.1:8545, and this setup works equally well. 
+So both Ganache and Ganache-cli work without modification. 
+
+Currency Symbol field:
+ETH 
+click save
+
+Close the Custom RPC setup window by clicking X
+You should see Account 1 with 100 Ether. This address should be the same as:
+In Ganache accounts tab, right under MNEMONIC, the first (topmost) account.
+By the way, this is the Coinbase account of your node.
+
+Do the tutorial:
+unpack:
+pet-shop-box-master.rar and call it pet-shop-box-master-TUTORIAL
+and carefully follow the tutorial:
+https://www.trufflesuite.com/tutorial
+https://www.trufflesuite.com/boxes
+HOWEVER: do the following after you are finished with the tutorial:
+In the index.html file:
+remove the reference to src="https://animalso.com/wp-content/uploads/2017/01/Golden-Retriever_6.jpg"
+and change it to src="images/golden-retriever.jpeg"
+
+NOTE:
+When pressing the button to adopt a pet:
+Metamask should ask for a confirmation of the adoption transaction 
+(though adoption is free gas is required)
+Same function with spond button.
+Check your adoption transaction in Metamask and in Ganache
+It should be in both places
+In Ganache the transactions can be seen by clicking
+Transactions in the head menu
+In Metamask the transactions are also visible
+If you click the transaction you will be able to see the details
+
+When pressing register button to register a new pet:
+a new temporary window will pop up
+you should fill in all the information you need
+click the Choose File button to insert your dog picture
+the App will help you to check whether the necessary fields you has been filled
+after you filled all, click submit will update pets information and close the temporary window
+then you should see your registered pet in the web now
+
+Filter will automatically update all the pets information that stored in the server
+Click the arrow button to expand all the options you can pick for each feature filter

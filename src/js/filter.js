@@ -27,7 +27,7 @@ const Filter = {
     const locations = [...new Set(petData.map(pet => pet.location))].sort();
     const ages = [...new Set(petData.map(pet => pet.age))].sort((a, b) => a - b);
     const states = [...new Set(petData.map(pet => pet.state))].sort();
-    console.log("petData:", petData)
+
     function populateSelectOptions(selectElement, options) {
       selectElement.empty(); // Clear existing options
       selectElement.append('<option value="">All</option>'); // Default option
@@ -48,7 +48,6 @@ const Filter = {
     const locationFilter = $('#locationFilter').val();
     const stateFilter = $('#stateFilter').val();
 
-    console.log("Filters applied:", { breedFilter, ageFilter, locationFilter, stateFilter });
     const filteredPets = App.pets.filter((pet) => {
       const breedMatch = breedFilter === '' || pet.breed === breedFilter;
       const ageMatch = ageFilter === '' || pet.age == ageFilter;
@@ -58,7 +57,6 @@ const Filter = {
       return breedMatch && ageMatch && locationMatch && stateMatch;
     });
 
-    console.log("Filtered Pets:", filteredPets);
     App.displayPets(filteredPets);
   }
 };

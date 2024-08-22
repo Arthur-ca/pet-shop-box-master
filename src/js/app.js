@@ -6,12 +6,9 @@ App = {
 
   init: async function () {
     let petsData;
-
-    // Retrieve the CID from local storage
     this.cid = localStorage.getItem('petsJsonCid');
 
     if (!this.cid) {
-      // CID is null, fetch the local pets.json and upload to IPFS
       console.log('CID is null, fetching local pets.json...');
       const localPets = await this.fetchLocalPetsJSON();
       this.pets = localPets;
@@ -19,68 +16,55 @@ App = {
       const petsBlob = new Blob([JSON.stringify(localPets, null, 2)], { type: 'application/json' });
       const cid = await window.pinFileToIPFS(petsBlob, 'pets.json');
       this.cid = cid; // Store the CID for future use
-      console.log('Initial pets.json uploaded to IPFS with CID:', cid);
-
       // Store the new CID in local storage
       localStorage.setItem('petsJsonCid', cid);
 
       petsData = localPets;
     } else {
-      // CID is not null, fetch the updated pets.json from IPFS
       console.log('CID is not null, fetching pets.json from IPFS...');
       petsData = await window.fetchFileFromIPFS(this.cid);
       this.pets = petsData;
     }
-    console.log('Loaded Pets Data:', petsData); // Log the loaded pets data
-    // Populate the UI with the pets data
-    this.populatePets(petsData);
 
-    // Initialize filtering after loading pets
+    // this.populatePets(petsData);
     Filter.init();
 
     return await App.initWeb3();
   },
 
   fetchLocalPetsJSON: async function () {
-    // Fetch pets.json from the local server
     return new Promise((resolve, reject) => {
-      $.getJSON('../pets.json', function (data) {
-        resolve(data);
-      }).fail(function (jqxhr, textStatus, error) {
-        const err = textStatus + ", " + error;
-        console.error('Request Failed: ' + err);
-        reject(err);
-      });
+      $.getJSON('../pets.json')
+        .done(resolve)
+        .fail((jqxhr, textStatus, error) => {
+          const err = textStatus + ", " + error;
+          console.error('Request Failed: ' + err);
+          reject(new Error(err));
+        });
     });
   },
 
   populatePets: function (data) {
-    var petsRow = $('#petsRow');
-    var petTemplate = $('#petTemplate');
+    const petsRow = $('#petsRow');
+    petsRow.empty(); // Clear the previous content
 
-    for (let i = 0; i < data.length; i++) {
-      // console.log('Processing Pet:', data[i]); // Log each pet being processed
-      // Set the state to 'available' if it's not defined
-      if (!data[i].state || data[i].state === '') {
-        data[i].state = 'available';
+    data.forEach(pet => {
+      const petTemplate = $('#petTemplate').clone();
+      pet.state = pet.state || 'available'; // Default to 'available'
+      petTemplate.find('.panel-title').text(pet.name);
+      petTemplate.find('img').attr('src', pet.picture);
+      petTemplate.find('.pet-breed').text(pet.breed);
+      petTemplate.find('.pet-age').text(pet.age);
+      petTemplate.find('.pet-location').text(pet.location);
+      petTemplate.find('.pet-state').text(pet.state);
+      petTemplate.find('.btn-adopt').attr('data-id', pet.id);
+
+      if (pet.state === 'unavailable') {
+        petTemplate.find('.btn-adopt').text('Success').attr('disabled', true);
       }
-      petTemplate.find('.panel-title').text(data[i].name);
-      petTemplate.find('img').attr('src', data[i].picture);
-      petTemplate.find('.pet-breed').text(data[i].breed);
-      petTemplate.find('.pet-age').text(data[i].age);
-      petTemplate.find('.pet-location').text(data[i].location);
-      // Check if state exists
-      if (data[i].state) {
-        // console.log('State exists for ' + data[i].name + ': ' + data[i].state);
-        petTemplate.find('.pet-state').text(data[i].state);  // Display the state
-      } else {
-        console.log('No state found for ' + data[i].name);
-      }
-      // petTemplate.find('.pet-state').text(data[i].state);  // Add this line to include the state
-      petTemplate.find('.btn-adopt').attr('data-id', data[i].id);
 
       petsRow.append(petTemplate.html());
-    }
+    });
   },
 
   initWeb3: async function () {
@@ -105,223 +89,204 @@ App = {
     }
     window.web3 = new Web3(App.web3Provider);
 
-    await App.initContract();
-    await App.initSpondContract();
-
-    return App.initContract();
+    return this.initContracts();
   },
 
-  initContract: function () {
-    $.getJSON('Adoption.json', function (petAdoptionData) {
-      var AdoptionArtifact = petAdoptionData;
-      App.contracts.Adoption = TruffleContract(AdoptionArtifact);
+  initContracts: async function () {
+    try {
+      const adoptionArtifact = await $.getJSON('Adoption.json');
+      const spondArtifact = await $.getJSON('Spond.json');
+
+      App.contracts.Adoption = TruffleContract(adoptionArtifact);
+      App.contracts.Spond = TruffleContract(spondArtifact);
+
       App.contracts.Adoption.setProvider(App.web3Provider);
-
-      return App.markAdopted();
-    });
-
-    return App.bindEvents();
-  },
-
-  initSpondContract: function () {
-    $.getJSON('Spond.json', function (spondContractData) {
-      var SpondArtifact = spondContractData;
-      App.contracts.Spond = TruffleContract(SpondArtifact);
       App.contracts.Spond.setProvider(App.web3Provider);
 
-      return App.markSponded();
-    });
-
-    return App.bindEvents();
+      await this.markAdopted();
+      this.bindEvents();
+    } catch (error) {
+      console.error('Error initializing contracts:', error);
+    }
   },
 
   bindEvents: function () {
     $(document).on('click', '.btn-adopt', App.handleAdopt);
-    $(document).on('click', '.btn-spond', App.handleSpond);
     $(document).on('submit', '#registerPetForm', App.handleRegisterPet);
+    $(document).on('click', '.btn-spond', App.handleSpond)
   },
 
-  markAdopted: function (adopters, account) {
-    var adoptionInstance;
+  markAdopted: async function () {
+    try {
+      const adoptionInstance = await App.contracts.Adoption.deployed();
+      const adopters = await adoptionInstance.getAdopters.call();
 
-    App.contracts.Adoption.deployed().then(function (instance) {
-      adoptionInstance = instance;
-
-      return adoptionInstance.getAdopters.call();
-    }).then(async function (adopters) {
-      for (i = 0; i < adopters.length; i++) {
-        if (adopters[i] !== '0x0000000000000000000000000000000000000000') {
-          // Update the state text to "unavailable" in the UI
-          $('.panel-pet').eq(i).find('.pet-state').text('unavailale');//1
-          // update the state in the App.pets array as well
-          if (App.pets[i]) {
-            App.pets[i].state = 'unavailable';
+      adopters.forEach((adopter, index) => {
+        if (adopter !== '0x0000000000000000000000000000000000000000') {
+          $('.panel-pet').eq(index).find('.pet-state').text('unavailable');
+          if (App.pets[index]) {
+            App.pets[index].state = 'unavailable';
           }
         }
-      }
-      // Re-upload the updated pets.json to IPFS
-      try {
-        console.log('Uploading updated pets.json to IPFS...');
-        const updatedPetsBlob = new Blob([JSON.stringify(App.pets, null, 2)], { type: 'application/json' });
-        const newCid = await window.pinFileToIPFS(updatedPetsBlob, 'pets.json');
-        console.log('Updated pets.json file uploaded to IPFS with new CID:', newCid);
+      });
 
-        // Store the new CID
-        localStorage.setItem('petsJsonCid', newCid);
-        App.cid = newCid; // Update the CID in App
+      const updatedPetsBlob = new Blob([JSON.stringify(App.pets, null, 2)], { type: 'application/json' });
+      const newCid = await window.pinFileToIPFS(updatedPetsBlob, 'pets.json');
+      localStorage.setItem('petsJsonCid', newCid);
+      App.cid = newCid;
 
-        // Optionally, you can also update the filters if necessary
-        Filter.fetchAndPopulateFilters();
-
-      } catch (error) {
-        console.error('Error uploading updated pets.json to IPFS:', error);
-      }
-      // Update the entire UI to reflect the latest states in App.pets
+      Filter.fetchAndPopulateFilters();
       App.displayPets(App.pets);
-    }).catch(function (err) {
-      console.log(err.message);
-    });
+    } catch (error) {
+      console.error('Error in markAdopted:', error.message);
+    }
   },
 
   handleAdopt: function (event) {
     event.preventDefault();
-
     var petId = parseInt($(event.target).data('id'));
-
-    var adoptionInstance;
 
     web3.eth.getAccounts(function (error, accounts) {
       if (error) {
-        console.log(error);
+        console.log('Error fetching accounts:', error);
       }
 
       var account = accounts[0];
 
       App.contracts.Adoption.deployed().then(function (instance) {
-        adoptionInstance = instance;
-
-        // Execute adopt as a transaction by sending account
-        return adoptionInstance.adopt(petId, { from: account });
+        return instance.adopt(petId, { from: account });
       }).then(function (result) {
+        console.log('Adoption result:', result);
         return App.markAdopted();
       }).then(function () {
-        // Re-populate filters after adoption
         Filter.fetchAndPopulateFilters();
       }).catch(function (err) {
-        console.log(err.message);
+        console.error('Error during adoption process:', err.message);
       });
     });
   },
-  // Spond functionality
+
   handleSpond: function (event) {
     event.preventDefault();
-
-    var petId = parseInt($(event.target).data('id'));
-    // Check if the pet is already adopted before allowing to spond
-    if (App.pets[petId].state === 'unavailable') {
-      console.log("This pet has already been adopted. Sponsorship is not allowed.");
-      return;
-    }
-    var spondInstance;
-
+    const petId = parseInt($(event.target).data('id'));
+    console.log('pet ID:', petId);
 
     web3.eth.getAccounts(function (error, accounts) {
       if (error) {
-        console.log(error);
+        console.log('Error fetching accounts:', error);
       }
 
       var account = accounts[0];
 
       App.contracts.Spond.deployed().then(function (instance) {
-        spondInstance = instance;
-
-        // Send 0.001 ETH as part of the spond transaction
-        return spondInstance.spond(petId, { from: account, value: web3.utils.toWei('0.001', 'ether') });
+        return instance.spond(petId, { from: account });
       }).then(function (result) {
-        // Provide feedback to the user
-        $('.panel-pet').eq(petId).find('.btn-spond').text('Thank you!').attr('disabled', true);
-        setTimeout(() => {
-          $('.panel-pet').eq(petId).find('.btn-spond').text('Spond').attr('disabled', false);
-        }, 3000);
-        return App.markSponded();
+        return App.updateSpond(petId);
       }).catch(function (err) {
-        console.log(err.message);
+        console.error('Error during spond process:', err.message);
       });
     });
   },
 
-  markSponded: function (sponsors, account) {
-    var spondInstance;
+  updateSpond: async function (petId) {
+    try {
+      // Fetch the latest pets data from IPFS
+      const petsData = await window.fetchFileFromIPFS(App.cid);
+      const spond_fee = petsData[petId].spond_fee || 0; // Default to 0 if not present
 
-    App.contracts.Spond.deployed().then(function (instance) {
-      spondInstance = instance;
+      petsData[petId].spond_fee = spond_fee + 1;
+      const updatedPetsBlob = new Blob([JSON.stringify(petsData, null, 2)], { type: 'application/json' });
+      const newCid = await window.pinFileToIPFS(updatedPetsBlob, 'pets.json');
 
-      return spondInstance.getSponsors.call();
-    }).then(function (sponsors) {
-      for (i = 0; i < sponsors.length; i++) {
-        if (sponsors[i] !== '0x0000000000000000000000000000000000000000') {
-          $('.panel-pet').eq(i).find('.btn-spond').text('Sponsored').attr('disabled', true);
-        }
-      }
-    }).catch(function (err) {
-      console.log(err.message);
-    });
+      localStorage.setItem('petsJsonCid', newCid);
+      App.cid = newCid;
+    } catch (error) {
+      console.error('Error updating spond_fee in pets.json:', error);
+    }
   },
 
   handleRegisterPet: async function (event) {
     event.preventDefault();
-
     const file = document.getElementById('petPhoto').files[0];
     const petName = $('#petName').val();
     const breed = $('#petBreed').val();
     const age = $('#petAge').val();
     const location = $('#petLocation').val();
     const adoptionFee = $('#adoptionFee').val();
-    console.log('File selected:', file);
-    console.log('Pet name entered:', petName);
 
     try {
-      console.log('Attempting to pin file to IPFS...');
-      const ipfsHash = await window.pinFileToIPFS(file, petName);
+      const resizedImageBlob = await App.resizeImage(file, 450, 450);
+      const ipfsHash = await window.pinFileToIPFS(resizedImageBlob, petName);
       const photoURI = `https://azure-lazy-vulture-311.mypinata.cloud/ipfs/${ipfsHash}`;
-      console.log('File pinned to IPFS with URI:', photoURI);
-
-      // Step 3: Fetch the existing pets data from IPFS using the stored CID
-      console.log('Fetching existing pets data from IPFS...');
       const petsData = await window.fetchFileFromIPFS(App.cid);
 
       // Prepare pet data to register
       const petData = {
-        id: petsData.length + 1, // Use a timestamp as a unique ID
+        id: petsData.length + 1,
         name: petName,
         picture: photoURI,
         age: age,
         breed: breed,
         location: location,
         adoptionFee: adoptionFee,
-        registeredAt: new Date().toISOString().split('T')[0]
+        spond_fee: 0,
+        registeredAt: new Date().toISOString().split('T')[0],
+        state: "avaliable"
       };
 
-      // Step 4: Add the new pet data to the existing pets data
+      // Add the new pet data to the existing pets data
       petsData.push(petData);
-      console.log('Pets Data', petsData)
-
-      // Step 5: Upload the updated pets.json to IPFS
-      console.log('Uploading updated pets.json to IPFS...');
       const updatedPetsBlob = new Blob([JSON.stringify(petsData, null, 2)], { type: 'application/json' });
-      console.log('Blob: ', updatedPetsBlob)
       const newCid = await window.pinFileToIPFS(updatedPetsBlob, 'pets.json');
-      console.log('Updated pets.json file uploaded to IPFS with new CID:', newCid);
-
       localStorage.setItem('petsJsonCid', newCid);
+
       App.displayPets(petsData)
       Filter.fetchAndPopulateFilters();
+      $('#registerPetModal').modal('hide');
 
     } catch (error) {
       console.error('Error during pet registration:', error);
     }
   },
 
+  resizeImage: async function (file, maxWidth, maxHeight) {
+    return new Promise((resolve, reject) => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate the aspect ratio
+        const widthRatio = maxWidth / width;
+        const heightRatio = maxHeight / height;
+        const ratio = Math.max(widthRatio, heightRatio);
+
+        // Calculate the new dimensions and position
+        const newWidth = width * ratio;
+        const newHeight = height * ratio;
+        const offsetX = (maxWidth - newWidth) / 2;
+        const offsetY = (maxHeight - newHeight) / 2;
+
+        canvas.width = maxWidth;
+        canvas.height = maxHeight;
+
+        // Draw the image, cropped to fill the canvas
+        ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+
+        canvas.toBlob((blob) => {
+          resolve(blob);
+          URL.revokeObjectURL(img.src);  // Free up memory
+        }, 'image/jpeg', 0.95);  // Adjust the quality if necessary
+      };
+
+      img.onerror = (error) => reject(error);
+    });
+  },
 
   displayPets: function (pets) {
     const petsRow = $('#petsRow');
@@ -336,10 +301,11 @@ App = {
       petTemplate.find('.pet-location').text(pet.location);
       petTemplate.find('.pet-state').text(pet.state);
       petTemplate.find('.btn-adopt').attr('data-id', pet.id);
-      // Check if the pet is adopted and disable the Adopt button and Spond button
+      petTemplate.find('.btn-spond').attr('data-id', pet.id);
+      // Check if the pet is adopted and disable the Adopt button if necessary
       if (pet.state === 'unavailable') {
         petTemplate.find('.btn-adopt').text('Success').attr('disabled', true);
-        petTemplate.find('.btn-spond').attr('disabled', true)
+        petTemplate.find('.btn-spond').text('Spond').attr('disabled', true);
       }
 
       petsRow.append(petTemplate.html());

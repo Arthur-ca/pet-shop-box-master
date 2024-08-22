@@ -2106,11 +2106,9 @@ window.pinFileToIPFS = async (file, fileName) => {
         'Authorization': `Bearer ${JWT}`
       }
     });
-    console.log('File pinned successfully:', res.data);
     return res.data.IpfsHash;
   } catch (error) {
     console.error('Error pinning file to IPFS:', error);
-    throw error;
   }
 };
 
@@ -2118,11 +2116,9 @@ window.pinFileToIPFS = async (file, fileName) => {
 window.fetchFileFromIPFS = async (cid) => {
   try {
     const res = await axios.get(`https://azure-lazy-vulture-311.mypinata.cloud/ipfs/${cid}`);
-    console.log('File fetched successfully:', res.data);
     return res.data;
   } catch (error) {
     console.error('Error fetching file from IPFS:', error);
-    throw error;
   }
 };
 
@@ -2139,11 +2135,9 @@ window.updateFileOnIPFS = async (cid, newPetData) => {
 
     // Pin the updated file to IPFS
     const newCid = await window.pinFileToIPFS(updatedFile, 'pets.json');
-    console.log('Updated file pinned successfully with new CID:', newCid);
     return newCid;
   } catch (error) {
     console.error('Error updating file on IPFS:', error);
-    throw error;
   }
 };
 
